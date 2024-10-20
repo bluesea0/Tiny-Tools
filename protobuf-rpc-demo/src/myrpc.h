@@ -19,6 +19,7 @@ public:
   virtual void NotifyOnCancel(::google::protobuf::Closure* /* callback */) { };
 };//MyController
 
+// 客户端发送数据，继承自RpcChannel
 class MyChannel : public ::google::protobuf::RpcChannel {
 public:
     void init(const std::string& ip, const int port) {
@@ -43,12 +44,16 @@ public:
 
         std::string serialzied_str = rpc_meta.SerializeAsString();
 
+        // 将要发送的数据长度插到字符串最前面，这样服务端在解析时，能够知道本次请求一次性读取多少数据长度
         int serialzied_size = serialzied_str.size();
         serialzied_str.insert(0, std::string((const char*)&serialzied_size, sizeof(int)));
         serialzied_str += serialzied_data;
 
+        // 发送数据
+        // rpc_meta大小（定长4字节)|rpc_meta序列化数据（不定长）|request序列化数据（不定长）
         _sock->send(boost::asio::buffer(serialzied_str));
 
+        // 接收4个字节的数据，char类型，表示res数据整体大小
         char resp_data_size[sizeof(int)];
         _sock->receive(boost::asio::buffer(resp_data_size));
 
@@ -106,6 +111,7 @@ private:
         std::map<std::string, const ::google::protobuf::MethodDescriptor*> mds;
     };//ServiceInfo
 
+    // server端记录Service所有的方法
     //service_name -> {Service*, ServiceDescriptor*, MethodDescriptor* []}
     std::map<std::string, ServiceInfo> _services;
 };//MyServer
@@ -165,6 +171,8 @@ void MyServer::dispatch_msg(
     std::cout << "recv type:" << md->input_type()->name() << std::endl;
     std::cout << "resp type:" << md->output_type()->name() << std::endl;
 
+    // 根据GetRequestPrototype + 方法名，获取到对应的请求和响应message类型，构造具体的对象
+    // GetRequestPrototype在pb.cc文件有实现
     auto recv_msg = service->GetRequestPrototype(md).New();
     recv_msg->ParseFromString(serialzied_data);
     auto resp_msg = service->GetResponsePrototype(md).New();
@@ -176,6 +184,7 @@ void MyServer::dispatch_msg(
             recv_msg,
             resp_msg,
             sock);
+    // CallMethod: pb生成的接口，根据method的descriptor通过反射调用相应的接口
     service->CallMethod(md, &controller, recv_msg, resp_msg, done);
 }
 

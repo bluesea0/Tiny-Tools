@@ -1,5 +1,6 @@
 package myrpc;
 
+// rpc，拿到调用的服务名和方法名，发送给服务端，服务端以此判定要调用哪个接口
 message RpcMeta {
     optional string service_name = 1;
     optional string method_name = 2;

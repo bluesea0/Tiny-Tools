@@ -2,6 +2,9 @@ PROJECT(protobuf-rpc-demp)
 cmake_minimum_required(VERSION 3.2)
 add_compile_options(-std=c++11)
 
+# 相关博客教程
+# https://izualzhy.cn/demo-protobuf-rpc#63-server
+
 include_directories(
     ./src
     ../../../../bc_out/third-64/protobuf/output/include
